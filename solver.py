@@ -20,6 +20,9 @@ if __name__ == '__main__':
             Package2D(size=(np.random.randint(2, 6), np.random.randint(2, 6)), target_stop=np.random.randint(1, 6), deadline=None)
             for _ in range(100)
         ],
+        mutation_chance=0.1,
+        max_mutation_size=3,
+        swap_mutation_chance=0.4
     )
 
     population = list(itertools.islice(generate_solution_candidates(prob), pop_size))

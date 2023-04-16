@@ -21,6 +21,9 @@ class Problem2D(NamedTuple):
     n_stops: int
     cargo_size: tuple[int, int]
     packages: list[Package2D]
+    mutation_chance: float
+    max_mutation_size: int
+    swap_mutation_chance: float
 
 
 class Solution2D(NamedTuple):

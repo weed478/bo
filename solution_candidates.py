@@ -1,7 +1,7 @@
 from typing import Iterator
 import numpy as np
 from problem import *
-
+from crossing import mutate_solution
 
 def try_fit(cargo: np.ndarray, pkg: Package2D) -> tuple[int, int] | None:
     dx, dy = pkg.size
@@ -33,8 +33,11 @@ if __name__ == '__main__':
         cargo_size=(10, 10),
         packages=[
             Package2D(size=(rng.integers(1, 5), rng.integers(1, 5)), target_stop=rng.integers(0, 5), deadline=None)
-            for _ in range(20)
+            for _ in range(100)
         ],
+        mutation_chance=0.1,
+        max_mutation_size=3,
+        swap_mutation_chance=0.4
     )
     sol = generate_solution_candidates(prob)
     print(sol.cargo)
