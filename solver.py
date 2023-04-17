@@ -2,8 +2,8 @@ import numpy as np
 import dask.bag as db
 import itertools
 from problem import *
-from solution_candidates import generate_solution_candidates
-from crossing import cross_solutions
+from solution_candidates import generate_solution_candidates, generate_solution_candidates_with_rows
+from crossing import cross_solutions, cross_solutions_by_rows
 
 
 # What part of space is occupied
@@ -47,26 +47,24 @@ def target_function(solution: Solution2D):
     return fitness_fn(solution) * time_fn(solution)
 
 
+
 if __name__ == "__main__":
     pop_size = 100
-
     prob = Problem2D(
         n_stops=5,
-        cargo_size=(20, 20),
+        cargo_size=(36, 50),
         packages=[
-            Package2D(
-                size=(np.random.randint(2, 6), np.random.randint(2, 6)),
-                target_stop=np.random.randint(1, 6),
-                deadline=None,
-            )
-            for _ in range(100)
+            Package2D(size=(np.random.choice((1, 2, 4, 6)), np.random.randint(2, 6)), target_stop=np.random.randint(1, 6), deadline=None)
+            for _ in range(300)
         ],
         mutation_chance=0.1,
         max_mutation_size=3,
         swap_mutation_chance=0.4,
+        row_height=6,
     )
 
-    population = list(itertools.islice(generate_solution_candidates(prob), pop_size))
+    # population = list(itertools.islice(generate_solution_candidates(prob), pop_size))
+    population = list(itertools.islice(generate_solution_candidates_with_rows(prob), pop_size))
 
     for i in range(10):
         print(f"Generation {i}")
@@ -83,8 +81,4 @@ if __name__ == "__main__":
             for i in np.random.choice(pop_size, pop_size, p=niceness / niceness.sum())
         ]
 
-        population = (
-            db.from_sequence(zip(parents_a, parents_b))
-            .map(lambda x: cross_solutions(*x))
-            .compute()
-        )
+        population = db.from_sequence(zip(parents_a, parents_b)).map(lambda x: cross_solutions_by_rows(*x)).compute()

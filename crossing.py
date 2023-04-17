@@ -44,10 +44,77 @@ def cross_solutions(s1: Solution2D, s2: Solution2D) -> Solution2D:
     return Solution2D(cargo=cargo, problem=prob)
 
 
+def remove_one(cargo: np.ndarray, pkg: Package2D, pkg_id: int) -> None:
+    dx, dy = pkg.size
+    for y in reversed(range(cargo.shape[1] - dy + 1)):
+        for x in range(cargo.shape[0] - dx + 1):
+            if np.all(cargo[x:x + dx, y:y + dy] == pkg_id):
+                cargo[x:x + dx, y:y + dy] = 0
+                return
+
+
+def try_fit_in_row(cargo: np.ndarray, pkg: Package2D, row_number: int, row_height: int) -> tuple[int, int] | None:
+    dx, dy = pkg.size
+    for x in range(row_height * row_number, row_height * (row_number + 1) - dx + 1):
+        for y in range(cargo.shape[1] - dy + 1):
+            if np.all(cargo[x:x + dx, y:y + dy] == 0):
+                return x, y
+    return None
+
+
+def cross_solutions_by_rows(s1: Solution2D, s2: Solution2D) -> Solution2D:
+    prob = s1.problem
+
+    # plot_solution(s1, title="s1")
+    # plot_solution(s2, title="s2")
+
+    all_pkgs = np.unique(np.concatenate((np.unique(s1.cargo), np.unique(s2.cargo))))
+    all_pkgs = all_pkgs[all_pkgs != 0] - 1
+
+    num_rows = prob.cargo_size[0] // prob.row_height
+    s1_sample_size = num_rows // 2
+    s2_sample_size = num_rows - s1_sample_size
+
+    s1_rows = np.array_split(s1.cargo, num_rows)
+    s2_rows = np.array_split(s2.cargo, num_rows)
+    new_rows = random.sample(s1_rows, k=s1_sample_size) + random.sample(s2_rows, k=s2_sample_size)
+    cargo = np.vstack(new_rows)
+
+    # plot_cargo(cargo, title="cargo")
+
+    unique_by_row = np.concatenate([np.unique(row) for row in new_rows])
+    unique_by_row = unique_by_row[unique_by_row != 0] - 1
+    unique_pkgs, counts = np.unique(unique_by_row, return_counts=True)
+    repeated_pkgs = unique_pkgs[np.where(counts > 1)]
+
+    for pkg_i in repeated_pkgs:
+        pkg = prob.packages[pkg_i]
+        remove_one(cargo, pkg, pkg_i + 1)
+
+    # plot_cargo(cargo, title="cargo z usuniętymi")
+
+    unused_pkgs = list(set(all_pkgs) - set(unique_pkgs))
+    unused_pkgs = np.random.permutation(unused_pkgs)
+
+    for pkg_i in unused_pkgs:
+        pkg = prob.packages[pkg_i]
+        for row_i in range(num_rows):
+            top_left = try_fit_in_row(cargo, pkg, row_i, prob.row_height)
+            if top_left is None:
+                continue
+            x, y = top_left
+            dx, dy = pkg.size
+            cargo[x:x + dx, y:y + dy] = pkg_i + 1
+            break
+
+    # plot_cargo(cargo, title="cargo z wypełnieniem")
+    return Solution2D(cargo=cargo, problem=prob)
+
+
 def mutate_solution(solution: Solution2D, problem: Problem2D):
     if random.random() > problem.mutation_chance:
         return solution
-    
+
     pkgs = list(np.unique(solution.cargo))
     # wymiana paczek na paczki z magazynu
     if random.random() > problem.swap_mutation_chance:
