@@ -31,7 +31,7 @@ Na każdym stopie kierowca musi wyjąć paczki z ładowni przez drzwi (musi prze
 
 $\pi_{x,y,z}$  - numer ładunku $1 \dots M$ na pozycji $(x,y,z)$ w ładowni, jeśli pole jest puste to $0$
 
-### Funkcja celu
+### Funkcja kosztu
 
 $$
 f(\pi) = \sum_{i=1}^M \left(
@@ -43,7 +43,7 @@ $$
 
 gdzie:
 
-* $t_i$ - czas na wyjęcie paczki na odpowiednim przystanku wyrażony jako odległość paczki od drzwi
+* $t_i$ - czas na wyjęcie paczki na odpowiednim przystanku wyrażony jako masa ładunków między paczką a drzwiami
 
 * $1_i$ - 1 jeśli bierzemy paczkę 1, 0 jeśli nie
 
