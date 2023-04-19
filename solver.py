@@ -1,14 +1,13 @@
 import numpy as np
 import dask.bag as db
-import itertools
 from problem import *
-from solution_candidates import generate_solution_candidates
-from crossing import cross_solutions
+from solution_candidates import generate_solution_candidate_with_rows
+from crossing import cross_solutions_by_rows
 
 
-# What part of space is empty
-def fitness_fn(solution: Solution2D):
-    return (solution.cargo == 0).sum() / (
+# What % of space is occupied by packages
+def fitness_fill(solution: Solution2D):
+    return (solution.cargo != 0).sum() / (
         solution.cargo.shape[0] * solution.cargo.shape[1]
     )
 
@@ -17,7 +16,7 @@ def fitness_fn(solution: Solution2D):
 # where:
 #   time = mass blocking a package at it's target stop
 #   blocking = having bigger y (being closer to the door)
-def time_fn(solution: Solution2D):
+def fitness_time(solution: Solution2D):
     target_stops_of_packages = np.ndarray(
         (package.target_stop for package in solution.problem.packages)
     )
@@ -30,7 +29,7 @@ def time_fn(solution: Solution2D):
         # How many fields with y bigger than current have later target stop than t
         np.cumsum(
             # How many fields with current y have larger stop than t
-            np.sum(target_stops_of_fields > t, axis=0, keepdims=true)[::-1],
+            np.sum(target_stops_of_fields > t, axis=0, keepdims=True)[::-1],
             axis=1,
         )[::-1]
         # For every target stop
@@ -46,8 +45,8 @@ def time_fn(solution: Solution2D):
     )
 
 
-def cost_fn(solution: Solution2D):
-    return fitness_fn(solution) + time_fn(solution)
+def fitness_fn(solution: Solution2D):
+    return fitness_fill(solution)  # + fitness_time(solution)
 
 
 if __name__ == "__main__":
@@ -67,27 +66,27 @@ if __name__ == "__main__":
         mutation_chance=0.1,
         max_mutation_size=3,
         swap_mutation_chance=0.4,
+        row_height=5,
     )
 
-    population = list(itertools.islice(generate_solution_candidates(prob), pop_size))
+    population = db.from_sequence(range(pop_size)).map(lambda _: generate_solution_candidate_with_rows(prob)).compute()
 
     for i in range(10):
         print(f"Generation {i}")
 
-        cost = np.array(db.from_sequence(population).map(cost_fn).compute())
-        print(f"Avg niceness: {np.mean(niceness)}")
+        fitness = np.array(db.from_sequence(population).map(fitness_fn).compute())
+        print(f"Mean fitness: {np.mean(fitness)}")
 
-        parents_a = [
+        parents_ab = [
             population[i]
-            for i in np.random.choice(pop_size, pop_size, p=(cost / cost.sum()))
+            for i in np.random.choice(pop_size, 2 * pop_size, p=fitness / fitness.sum())
         ]
-        parents_b = [
-            population[i]
-            for i in np.random.choice(pop_size, pop_size, p=(cost / cost.sum()))
-        ]
+
+        parents_a = parents_ab[::2]
+        parents_b = parents_ab[1::2]
 
         population = (
             db.from_sequence(zip(parents_a, parents_b))
-            .map(lambda x: cross_solutions(*x))
+            .map(lambda x: cross_solutions_by_rows(*x))
             .compute()
         )

@@ -1,7 +1,5 @@
-from typing import Iterator
 import numpy as np
 from problem import *
-from crossing import mutate_solution
 
 
 def try_fit(cargo: np.ndarray, pkg: Package2D) -> tuple[int, int] | None:
@@ -13,18 +11,17 @@ def try_fit(cargo: np.ndarray, pkg: Package2D) -> tuple[int, int] | None:
     return None
 
 
-def generate_solution_candidates(prob: Problem2D) -> Iterator[Solution2D]:
-    while True:
-        cargo = np.zeros(prob.cargo_size, dtype=np.int32)
-        for pkg_i in np.random.permutation(len(prob.packages)):
-            pkg = prob.packages[pkg_i]
-            top_left = try_fit(cargo, pkg)
-            if top_left is None:
-                continue
-            x, y = top_left
-            dx, dy = pkg.size
-            cargo[x:x + dx, y:y + dy] = pkg_i + 1
-        yield Solution2D(cargo=cargo, problem=prob)
+def generate_solution_candidate(prob: Problem2D) -> Solution2D:
+    cargo = np.zeros(prob.cargo_size, dtype=np.int32)
+    for pkg_i in np.random.permutation(len(prob.packages)):
+        pkg = prob.packages[pkg_i]
+        top_left = try_fit(cargo, pkg)
+        if top_left is None:
+            continue
+        x, y = top_left
+        dx, dy = pkg.size
+        cargo[x:x + dx, y:y + dy] = pkg_i + 1
+    return Solution2D(cargo=cargo, problem=prob)
 
 
 def try_fit_in_row(cargo: np.ndarray, pkg: Package2D, row_number: int, row_height: int) -> tuple[int, int] | None:
@@ -36,21 +33,20 @@ def try_fit_in_row(cargo: np.ndarray, pkg: Package2D, row_number: int, row_heigh
     return None
 
 
-def generate_solution_candidates_with_rows(prob: Problem2D) -> Iterator[Solution2D]:
+def generate_solution_candidate_with_rows(prob: Problem2D) -> Solution2D:
     rows = prob.cargo_size[0] // prob.row_height
-    while True:
-        cargo = np.zeros(prob.cargo_size, dtype=np.int32)
-        for pkg_i in np.random.permutation(len(prob.packages)):
-            pkg = prob.packages[pkg_i]
-            for row_i in range(rows):
-                top_left = try_fit_in_row(cargo, pkg, row_i, prob.row_height)
-                if top_left is None:
-                    continue
-                x, y = top_left
-                dx, dy = pkg.size
-                cargo[x:x + dx, y:y + dy] = pkg_i + 1
-                break
-        yield Solution2D(cargo=cargo, problem=prob)
+    cargo = np.zeros(prob.cargo_size, dtype=np.int32)
+    for pkg_i in np.random.permutation(len(prob.packages)):
+        pkg = prob.packages[pkg_i]
+        for row_i in range(rows):
+            top_left = try_fit_in_row(cargo, pkg, row_i, prob.row_height)
+            if top_left is None:
+                continue
+            x, y = top_left
+            dx, dy = pkg.size
+            cargo[x:x + dx, y:y + dy] = pkg_i + 1
+            break
+    return Solution2D(cargo=cargo, problem=prob)
 
 
 if __name__ == '__main__':
@@ -66,6 +62,6 @@ if __name__ == '__main__':
         max_mutation_size=3,
         swap_mutation_chance=0.4
     )
-    sol = generate_solution_candidates(prob)
+    sol = generate_solution_candidate(prob)
     print(sol.cargo)
     plot_solution(sol)
