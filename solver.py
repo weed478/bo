@@ -5,48 +5,41 @@ from solution_candidates import generate_solution_candidate_with_rows
 from crossing import cross_solutions_by_rows
 
 
-# What % of space is occupied by packages
 def fitness_fill(solution: Solution2D):
-    return (solution.cargo != 0).sum() / (
-        solution.cargo.shape[0] * solution.cargo.shape[1]
+    """What % of space is occupied"""
+
+    return (solution.cargo != 0).sum() / (solution.cargo.size)
+
+
+def fitness_speed(solution: Solution2D):
+    """Mean speed of getting out a package
+    = cargo size / mean mass blocking a package (mass closer to the door)"""
+
+    target_stops_of_packages = np.array(
+        [0] + [package.target_stop for package in solution.problem.packages]
     )
 
+    target_stops_of_fields = target_stops_of_packages[solution.cargo]
 
-# Mean time to get out a package
-# where:
-#   time = mass blocking a package at it's target stop
-#   blocking = having bigger y (being closer to the door)
-def fitness_time(solution: Solution2D):
-    target_stops_of_packages = np.ndarray(
-        (package.target_stop for package in solution.problem.packages)
-    )
-
-    target_stops_of_fields = (
-        np.choose(solution.cargo - 1, target_stops_of_packages) * solution.cargo != -1
-    )
-
-    later_targets_blocking_per_target = np.ndarray(
-        # How many fields with y bigger than current have later target stop than t
+    # How many fields with y bigger than current
+    # have larger target stop than t
+    blocking_per_target = [0] + [
         np.cumsum(
-            # How many fields with current y have larger stop than t
-            np.sum(target_stops_of_fields > t, axis=0, keepdims=True)[::-1],
-            axis=1,
+            # How many fields with current y have
+            # larger stop than t
+            np.sum(target_stops_of_fields > t, axis=0)[::-1],
         )[::-1]
         # For every target stop
         for t in range(solution.problem.n_stops)
-    )
+    ]
 
-    blocking_per_field = np.choose(
-        target_stops_of_fields, later_targets_blocking_per_target
-    )
+    blocking_per_field = target_stops_of_fields.choose(blocking_per_target)
 
-    return np.mean(blocking_per_field) / (
-        solution.cargo.shape[0] * solution.cargo.shape[1]
-    )
+    return solution.cargo.size / np.mean(blocking_per_field)
 
 
 def fitness_fn(solution: Solution2D):
-    return fitness_fill(solution)  # + fitness_time(solution)
+    return fitness_fill(solution) + fitness_speed(solution)
 
 
 if __name__ == "__main__":
