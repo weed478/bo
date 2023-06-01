@@ -1,6 +1,7 @@
 import numpy as np
 import dask.bag as db
 from problem import *
+from problem import plot_cost_chart
 from solution_candidates import generate_solution_candidate_with_rows
 from crossing import cross_solutions_by_rows
 
@@ -44,6 +45,7 @@ def fitness_fn(solution: Solution2D):
 
 if __name__ == "__main__":
     pop_size = 100
+    N_GENERATIONS=100
 
     prob = Problem2D(
         n_stops=5,
@@ -56,19 +58,24 @@ if __name__ == "__main__":
             )
             for _ in range(100)
         ],
-        mutation_chance=0.1,
+        mutation_chance=0.2,
         max_mutation_size=3,
-        swap_mutation_chance=0.4,
+        swap_mutation_chance=0.5,
         row_height=5,
+        prev_generation_remain=0.4
     )
 
     population = db.from_sequence(range(pop_size)).map(lambda _: generate_solution_candidate_with_rows(prob)).compute()
+    generations_avg_cost=[]
+    split_index=int(pop_size*prob.prev_generation_remain)
 
-    for i in range(10):
+    for i in range(N_GENERATIONS):
         print(f"Generation {i}")
 
         fitness = np.array(db.from_sequence(population).map(fitness_fn).compute())
         print(f"Mean fitness: {np.mean(fitness)}")
+
+        generations_avg_cost.append(100/np.mean(fitness))
 
         parents_ab = [
             population[i]
@@ -77,9 +84,15 @@ if __name__ == "__main__":
 
         parents_a = parents_ab[::2]
         parents_b = parents_ab[1::2]
-
-        population = (
+        
+        next_generation=(
             db.from_sequence(zip(parents_a, parents_b))
             .map(lambda x: cross_solutions_by_rows(*x))
             .compute()
         )
+
+        np.random.shuffle(population)
+        next_generation.sort(key=fitness_fn)
+        population=population[pop_size-split_index:]+next_generation[split_index:]
+
+    plot_cost_chart(generations_avg_cost,f"N_GENERATIONS = {N_GENERATIONS}, PREV = {prob.prev_generation_remain}, MUTATION_CHANCE = {prob.mutation_chance}")

@@ -106,9 +106,11 @@ def cross_solutions_by_rows(s1: Solution2D, s2: Solution2D) -> Solution2D:
             dx, dy = pkg.size
             cargo[x:x + dx, y:y + dy] = pkg_i + 1
             break
+    sol=Solution2D(cargo=cargo, problem=prob)
+    sol=mutate_solution(sol,prob)
 
     # plot_cargo(cargo, title="cargo z wypełnieniem")
-    return Solution2D(cargo=cargo, problem=prob)
+    return sol
 
 
 def mutate_solution(solution: Solution2D, problem: Problem2D):

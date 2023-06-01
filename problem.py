@@ -26,6 +26,7 @@ class Problem2D(NamedTuple):
     max_mutation_size: int
     swap_mutation_chance: float
     row_height: int
+    prev_generation_remain: float
 
 
 class Solution2D(NamedTuple):
@@ -38,6 +39,13 @@ def plot_solution(sol: Solution2D, title='Solution (black means no package)'):
     colors = np.random.randint(0, 256, size=(sol.cargo.max() + 1, 3))
     colors[0] = (0, 0, 0)
     plt.imshow(colors[sol.cargo])
+    plt.title(title)
+    plt.show()
+
+def plot_cost_chart(generations_cost: list[int], title: str):
+    plt.plot(range(len(generations_cost)),generations_cost)
+    plt.xlabel("Generation #")
+    plt.ylabel("Average solution cost")
     plt.title(title)
     plt.show()
 
