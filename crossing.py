@@ -65,9 +65,6 @@ def try_fit_in_row(cargo: np.ndarray, pkg: Package2D, row_number: int, row_heigh
 def cross_solutions_by_rows(s1: Solution2D, s2: Solution2D) -> Solution2D:
     prob = s1.problem
 
-    # plot_solution(s1, title="s1")
-    # plot_solution(s2, title="s2")
-
     all_pkgs = np.unique(np.concatenate((np.unique(s1.cargo), np.unique(s2.cargo))))
     all_pkgs = all_pkgs[all_pkgs != 0] - 1
 
@@ -80,8 +77,6 @@ def cross_solutions_by_rows(s1: Solution2D, s2: Solution2D) -> Solution2D:
     new_rows = random.sample(s1_rows, k=s1_sample_size) + random.sample(s2_rows, k=s2_sample_size)
     cargo = np.vstack(new_rows)
 
-    # plot_cargo(cargo, title="cargo")
-
     unique_by_row = np.concatenate([np.unique(row) for row in new_rows])
     unique_by_row = unique_by_row[unique_by_row != 0] - 1
     unique_pkgs, counts = np.unique(unique_by_row, return_counts=True)
@@ -90,8 +85,6 @@ def cross_solutions_by_rows(s1: Solution2D, s2: Solution2D) -> Solution2D:
     for pkg_i in repeated_pkgs:
         pkg = prob.packages[pkg_i]
         remove_one(cargo, pkg, pkg_i + 1)
-
-    # plot_cargo(cargo, title="cargo z usuniętymi")
 
     unused_pkgs = list(set(all_pkgs) - set(unique_pkgs))
     unused_pkgs = np.random.permutation(unused_pkgs)
@@ -107,8 +100,10 @@ def cross_solutions_by_rows(s1: Solution2D, s2: Solution2D) -> Solution2D:
             cargo[x:x + dx, y:y + dy] = pkg_i + 1
             break
 
-    # plot_cargo(cargo, title="cargo z wypełnieniem")
-    return Solution2D(cargo=cargo, problem=prob)
+    sol = Solution2D(cargo=cargo, problem=prob)
+    sol = mutate_solution(sol, prob)
+
+    return sol
 
 
 def mutate_solution(solution: Solution2D, problem: Problem2D):

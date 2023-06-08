@@ -39,47 +39,78 @@ def fitness_speed(solution: Solution2D):
 
 
 def fitness_fn(solution: Solution2D):
-    return fitness_fill(solution) + fitness_speed(solution)
+    return fitness_fill(solution) + solution.problem.alfa * fitness_speed(solution)
 
 
 if __name__ == "__main__":
-    pop_size = 100
+    POP_SIZE = 500
+    N_GENERATIONS = 5
 
     prob = Problem2D(
         n_stops=5,
-        cargo_size=(20, 20),
+        cargo_size=(12, 25),
         packages=[
-            Package2D(
-                size=(np.random.randint(2, 6), np.random.randint(2, 6)),
-                target_stop=np.random.randint(1, 6),
-                deadline=None,
-            )
+            Package2D(size=(np.random.choice((1, 2, 4)), np.random.randint(2, 5)),
+                      target_stop=np.random.randint(1, 6), deadline=None)
             for _ in range(100)
         ],
-        mutation_chance=0.1,
+        mutation_chance=0.2,
         max_mutation_size=3,
-        swap_mutation_chance=0.4,
-        row_height=5,
+        swap_mutation_chance=0.5,
+        row_height=4,
+        alfa=0.1,
     )
 
-    population = db.from_sequence(range(pop_size)).map(lambda _: generate_solution_candidate_with_rows(prob)).compute()
+    population = db.from_sequence(range(POP_SIZE)).map(lambda _: generate_solution_candidate_with_rows(prob)).compute()
+    generations_avg_fitness = []
+    generations_best_fitness = []
 
-    for i in range(10):
+    for i in range(N_GENERATIONS):
         print(f"Generation {i}")
 
         fitness = np.array(db.from_sequence(population).map(fitness_fn).compute())
+
+        best_fitness_idx = np.argmax(fitness)
         print(f"Mean fitness: {np.mean(fitness)}")
+        print(f"Best fitness: {fitness[best_fitness_idx]}")
+        generations_avg_fitness.append(np.mean(fitness))
+        generations_best_fitness.append(fitness[best_fitness_idx])
+        plot_solution(
+            population[best_fitness_idx],
+            title=f"Generation {i} best solution (fitness = {fitness[best_fitness_idx]})"
+        )
 
         parents_ab = [
             population[i]
-            for i in np.random.choice(pop_size, 2 * pop_size, p=fitness / fitness.sum())
+            for i in np.random.choice(POP_SIZE, 2 * POP_SIZE, p=fitness / fitness.sum())
         ]
 
         parents_a = parents_ab[::2]
         parents_b = parents_ab[1::2]
 
-        population = (
+        children = (
             db.from_sequence(zip(parents_a, parents_b))
             .map(lambda x: cross_solutions_by_rows(*x))
             .compute()
         )
+
+        next_generation = population + children
+        next_generation.sort(key=fitness_fn, reverse=True)
+
+        population = next_generation[:len(population)]
+
+    plot_fitness_chart(
+        generations_avg_fitness,
+        f"POP_SIZE = {POP_SIZE}, "
+        f"N_GENERATIONS = {N_GENERATIONS}, "
+        f"MUTATION_CHANCE = {prob.mutation_chance}, ",
+        "Average solution fitness"
+    )
+
+    plot_fitness_chart(
+        generations_best_fitness,
+        f"POP_SIZE = {POP_SIZE}, "
+        f"N_GENERATIONS = {N_GENERATIONS}, "
+        f"MUTATION_CHANCE = {prob.mutation_chance}, ",
+        "Best solution fitness"
+    )
