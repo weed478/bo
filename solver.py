@@ -3,6 +3,7 @@ import dask.bag as db
 from problem import *
 from solution_candidates import generate_solution_candidate_with_rows
 from crossing import cross_solutions_by_rows
+import hydra
 
 
 def fitness_fill(solution: Solution2D):
@@ -42,23 +43,24 @@ def fitness_fn(solution: Solution2D):
     return fitness_fill(solution) + solution.problem.alfa * fitness_speed(solution)
 
 
-if __name__ == "__main__":
-    POP_SIZE = 500
-    N_GENERATIONS = 5
+@hydra.main(config_path="conf", config_name="default", version_base=None)
+def main(conf):
+    POP_SIZE = conf.solver.pop_size
+    N_GENERATIONS = conf.solver.n_generations
 
     prob = Problem2D(
-        n_stops=5,
-        cargo_size=(12, 25),
+        n_stops=conf.problem.n_stops,
+        cargo_size=(conf.problem.cargo_size[0], conf.problem.cargo_size[1]),
         packages=[
-            Package2D(size=(np.random.choice((1, 2, 4)), np.random.randint(2, 5)),
-                      target_stop=np.random.randint(1, 6), deadline=None)
-            for _ in range(100)
+            Package2D(size=(np.random.choice(conf.problem.package.x_choices), np.random.randint(*conf.problem.package.y_range)),
+                      target_stop=np.random.randint(1, conf.problem.n_stops + 1), deadline=None)
+            for _ in range(conf.problem.n_packages)
         ],
-        mutation_chance=0.2,
-        max_mutation_size=3,
-        swap_mutation_chance=0.5,
-        row_height=4,
-        alfa=0.1,
+        mutation_chance=conf.solver.mutation_chance,
+        max_mutation_size=conf.solver.max_mutation_size,
+        swap_mutation_chance=conf.solver.swap_mutation_chance,
+        row_height=conf.solver.row_height,
+        alfa=conf.solver.alfa,
     )
 
     population = db.from_sequence(range(POP_SIZE)).map(lambda _: generate_solution_candidate_with_rows(prob)).compute()
@@ -114,3 +116,7 @@ if __name__ == "__main__":
         f"MUTATION_CHANCE = {prob.mutation_chance}, ",
         "Best solution fitness"
     )
+
+
+if __name__ == "__main__":
+    main()

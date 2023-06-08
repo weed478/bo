@@ -2,3 +2,4 @@ numpy
 matplotlib
 dask[complete]
 rich
+hydra-core

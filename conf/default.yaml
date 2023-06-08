@@ -1,0 +1,15 @@
+solver:
+  pop_size: 500
+  n_generations: 5
+  mutation_chance: 0.2
+  max_mutation_size: 3
+  swap_mutation_chance: 0.5
+  row_height: 4
+  alfa: 0.1
+problem:
+  n_stops: 5
+  cargo_size: [12, 25]
+  n_packages: 100
+  package:
+    x_choices: [1, 2, 4]
+    y_range: [2, 5]
